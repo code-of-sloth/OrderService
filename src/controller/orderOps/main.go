@@ -67,40 +67,61 @@ func UpdateOrderStatus(id string, status string) error {
 	return nil
 }
 
-func FetchOrders(id string) (result constant.Order, err error) {
+func FetchAllOrders(sortOrder, filterValue string, sortKey, filterKey int) (result []constant.Order, err error) {
 	// Implement the code for fetching the orders from the database based on the query parameters
-	if id == "" {
-		return result, errors.New("Order Id is empty")
+	var sortQuery, filterQuery string
+	if sortKey != -1 {
+		if sortOrder == "" {
+			sortOrder = "ASC"
+		}
+		sortQuery = fmt.Sprintf(" ORDER BY %v %s", constant.OrderKeyValue[sortKey], sortOrder)
+	}
+	if filterKey != -1 && filterValue != "" {
+		filterQuery = fmt.Sprintf("WHERE %v LIKE '%s%s%s' ", constant.OrderKeyValue[filterKey], "%", filterValue, "%")
 	}
 
-	query := make([]string, 2)
-	query[0] = fmt.Sprintf("SELECT id,status,currency_unit from orders WHERE id=%s", id)
-	query[1] = fmt.Sprintf("SELECT id,description,price,qty from items WHERE order_ids LIKE '%s%s%s'", `%`, id, `%`)
+	query := make([]string, 1)
+	query[0] = fmt.Sprintf("select id,status,currency_unit from orders %s%s", filterQuery, sortQuery)
 	resp, err := sqlDb.RunQuery(query...)
 	if err != nil {
 		return
-	} else if len(resp[0]) == 0 || len(resp[1]) == 0 {
-		return result, errors.New("Order and/or items empty")
+	} else if msg, ok := resp[0][0]["error"]; ok {
+		return result, errors.New(msg.(string))
 	}
-	for _, v := range resp {
-		if msg, ok := v[0]["error"]; ok {
-			return result, errors.New(msg.(string))
+
+	length := len(resp[0])
+	if length == 0 {
+		return
+	}
+
+	result, query = make([]constant.Order, length), make([]string, length)
+
+	for i, v := range resp[0] {
+		query[i] = fmt.Sprintf("SELECT id,description,price,qty from items WHERE order_ids LIKE '%s%v%s'", `%`, int(v["id"].(float64)), `%`)
+	}
+
+	resp, err = sqlDb.RunQuery(query...)
+	if err != nil {
+		return
+	} else if msg, ok := resp[0][0]["error"]; ok {
+		return result, errors.New(msg.(string))
+	}
+
+	for i, order := range resp {
+		var item constant.Item
+		for _, v := range order {
+			item.Description = v["description"].(string)
+			item.ID = fmt.Sprint(v["id"])
+			item.Price = v["price"].(float64)
+			item.Quantity = int(v["qty"].(float64))
+			result[i].Total += item.Price
+			result[i].Items = append(result[i].Items, item)
 		}
+		result[i].CurrencyUnit = resp[0][0]["currency_unit"].(string)
+		result[i].Status = resp[0][0]["status"].(string)
+		result[i].ID = fmt.Sprint(resp[0][0]["id"])
 	}
-
-	var item constant.Item
-	for _, v := range resp[1] {
-		item.Description = v["description"].(string)
-		item.ID = fmt.Sprint(v["id"])
-		item.Price = v["price"].(float64)
-		item.Quantity = int(v["qty"].(float64))
-		result.Total += item.Price
-		result.Items = append(result.Items, item)
-	}
-
-	result.CurrencyUnit = resp[0][0]["currency_unit"].(string)
-	result.Status = resp[0][0]["status"].(string)
-	result.ID = fmt.Sprint(resp[0][0]["status"])
 
 	return
+
 }

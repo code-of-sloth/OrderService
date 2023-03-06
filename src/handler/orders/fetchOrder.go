@@ -12,7 +12,7 @@ func FetchOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	id := queryParams.Get("id")
 
 	// Fetch the orders from the database based on the query parameters
-	orders, err := orderOps.FetchOrders(id)
+	orders, err := orderOps.FetchAllOrders("", id, -1, 0)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
