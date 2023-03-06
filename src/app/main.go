@@ -17,7 +17,7 @@ func main() {
 	r.HandleFunc("/orders/add", orders.AddOrderHandler).Methods("POST")
 	r.HandleFunc("/orders/updateStatus", orders.UpdateOrderHandler).Methods("POST")
 	r.HandleFunc("/orders/{id}", orders.FetchOrdersHandler).Methods("GET")
-	r.HandleFunc("/order", orders.FetchAllOrders).Methods("POST")
+	r.HandleFunc("/orders", orders.FetchAllOrders).Methods("POST")
 
 	// Start the HTTP server
 	log.Println("Starting HTTP server on port 8080...")
