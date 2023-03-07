@@ -1,11 +1,11 @@
 package orderOps
 
 import (
-	"constant"
 	"errors"
 	"fmt"
-	"services/sqlDb"
 	"strings"
+	"xxx/src/constant"
+	"xxx/src/services/sqlDb"
 
 	"github.com/dchest/uniuri"
 )
@@ -42,7 +42,7 @@ func StoreOrder(itemId []string, status string) (string, error) {
 
 	resp, err := sqlDb.RunQuery(query...)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	for _, v := range resp {

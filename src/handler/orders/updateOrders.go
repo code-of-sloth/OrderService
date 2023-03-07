@@ -1,9 +1,9 @@
 package orders
 
 import (
-	"controller/orderOps"
 	"encoding/json"
 	"net/http"
+	"xxx/src/controller/orderOps"
 )
 
 type updateOrderReq struct {
